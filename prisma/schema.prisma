@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model WhatsAppNumber {
+  id            String    @id @default(cuid())
+  name          String
+  wabaId        String
+  phoneNumberId String
+  accessToken   String    // AES-256-GCM encrypted
+  datasetId     String
+  webhookSecret String    @default(uuid())
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  events        Event[]
+}
+
+enum EventType {
+  PURCHASE
+}
+
+enum EventStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model Event {
+  id               String        @id @default(cuid())
+  whatsappNumberId String
+  whatsappNumber   WhatsAppNumber @relation(fields: [whatsappNumberId], references: [id])
+  type             EventType     @default(PURCHASE)
+  status           EventStatus   @default(PENDING)
+  retryCount       Int           @default(0)
+  orderId          String
+  customerPhone    String
+  customerEmail    String?
+  customerName     String
+  productName      String
+  value            Decimal
+  currency         String        @default("BRL")
+  rawPayload       Json          // Original webhook payload for retries
+  metaResponse     Json?
+  errorMessage     String?
+  sentAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([whatsappNumberId, orderId])
+  @@index([whatsappNumberId, createdAt])
+  @@index([status])
+}
