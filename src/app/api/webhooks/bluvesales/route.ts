@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
 import { buildUserData } from "@/lib/hash";
@@ -6,12 +7,43 @@ import { buildCapiPayload, sendEvent } from "@/lib/meta-capi";
 
 // NOTE: next/server's after() may not be available in Next.js 14.
 // If it's not available, use a fire-and-forget pattern instead.
-// Try importing after from next/server, fallback to direct call.
-let afterFn: (fn: () => void) => void;
+let afterFn: ((fn: () => void) => void) | undefined;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   afterFn = require("next/server").after;
 } catch {
-  afterFn = (fn) => { fn(); };
+  afterFn = undefined;
+}
+
+interface WebhookCustomer {
+  phone: string;
+  email?: string;
+  name: string;
+  document?: string;
+  address?: {
+    city?: string;
+    state?: string;
+    zipcode?: string;
+    country?: string;
+  };
+}
+
+interface WebhookOrder {
+  id: string;
+  created_at?: string;
+}
+
+interface WebhookProduct {
+  name: string;
+  plan?: string;
+  price: number;
+}
+
+interface WebhookBody {
+  event: string;
+  order: WebhookOrder;
+  customer: WebhookCustomer;
+  product: WebhookProduct;
 }
 
 export async function POST(req: NextRequest) {
@@ -48,7 +80,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Parse and validate payload
-    const body = await req.json();
+    const body: WebhookBody = await req.json();
 
     if (body.event !== "ORDER_CREATE") {
       return NextResponse.json(
@@ -87,7 +119,7 @@ export async function POST(req: NextRequest) {
         customerName: customer.name,
         productName: `${product.name}${product.plan ? ` - ${product.plan}` : ""}`,
         value: product.price,
-        rawPayload: body,
+        rawPayload: body as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -122,7 +154,7 @@ async function sendToMeta(
   eventId: string,
   encryptedToken: string,
   datasetId: string,
-  webhookBody: any
+  webhookBody: WebhookBody
 ) {
   try {
     const accessToken = decrypt(encryptedToken);
@@ -132,7 +164,7 @@ async function sendToMeta(
       phone: customer.phone,
       email: customer.email,
       name: customer.name,
-      document: customer.document,
+      document: customer.document || "",
       city: customer.address?.city || "",
       state: customer.address?.state || "",
       zipcode: customer.address?.zipcode || "",
@@ -163,16 +195,16 @@ async function sendToMeta(
       where: { id: eventId },
       data: {
         status: "SENT",
-        metaResponse: metaResponse as any,
+        metaResponse: metaResponse as Prisma.InputJsonValue,
         sentAt: new Date(),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     await prisma.event.update({
       where: { id: eventId },
       data: {
         status: "FAILED",
-        errorMessage: error.message,
+        errorMessage: error instanceof Error ? error.message : String(error),
         retryCount: { increment: 1 },
       },
     });

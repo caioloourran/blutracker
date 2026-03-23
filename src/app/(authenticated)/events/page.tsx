@@ -118,7 +118,7 @@ export default function EventsPage() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Status</label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-36 h-8 text-sm">
               <SelectValue />
             </SelectTrigger>
@@ -133,7 +133,7 @@ export default function EventsPage() {
 
         <div className="space-y-1">
           <label className="text-xs text-gray-400">Numero</label>
-          <Select value={numberFilter} onValueChange={setNumberFilter}>
+          <Select value={numberFilter} onValueChange={(v) => setNumberFilter(v ?? "all")}>
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-48 h-8 text-sm">
               <SelectValue />
             </SelectTrigger>

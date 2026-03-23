@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -15,13 +16,14 @@ export async function GET(req: NextRequest) {
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
 
-  const where: any = {};
-  if (status) where.status = status;
+  const where: Prisma.EventWhereInput = {};
+  if (status) where.status = status as Prisma.EnumEventStatusFilter["equals"];
   if (numberId) where.whatsappNumberId = numberId;
   if (startDate || endDate) {
-    where.createdAt = {};
-    if (startDate) where.createdAt.gte = new Date(startDate);
-    if (endDate) where.createdAt.lte = new Date(endDate);
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (startDate) createdAt.gte = new Date(startDate);
+    if (endDate) createdAt.lte = new Date(endDate);
+    where.createdAt = createdAt;
   }
 
   const [events, total] = await Promise.all([

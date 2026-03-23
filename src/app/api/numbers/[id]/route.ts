@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/encryption";
@@ -38,7 +39,7 @@ export async function PUT(
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const data: any = {};
+  const data: Prisma.WhatsAppNumberUpdateInput = {};
 
   if (body.name) data.name = body.name;
   if (body.wabaId) data.wabaId = body.wabaId;

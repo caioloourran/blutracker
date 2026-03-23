@@ -1,8 +1,26 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/encryption";
 import { buildUserData } from "@/lib/hash";
 import { buildCapiPayload, sendEvent } from "@/lib/meta-capi";
+
+interface WebhookCustomer {
+  phone: string;
+  email?: string;
+  name: string;
+  document?: string;
+  address?: {
+    city?: string;
+    state?: string;
+    zipcode?: string;
+    country?: string;
+  };
+}
+
+interface WebhookPayload {
+  customer: WebhookCustomer;
+}
 
 export async function GET(req: Request) {
   // Verify cron secret
@@ -35,7 +53,7 @@ export async function GET(req: Request) {
       const accessToken = decrypt(event.whatsappNumber.accessToken);
 
       // Use rawPayload for full user data on retries
-      const raw = event.rawPayload as any;
+      const raw = event.rawPayload as unknown as WebhookPayload;
       const customer = raw.customer;
 
       const userData = buildUserData({
@@ -73,18 +91,18 @@ export async function GET(req: Request) {
         where: { id: event.id },
         data: {
           status: "SENT",
-          metaResponse: metaResponse as any,
+          metaResponse: metaResponse as Prisma.InputJsonValue,
           sentAt: new Date(),
         },
       });
 
       processed++;
-    } catch (error: any) {
+    } catch (error: unknown) {
       await prisma.event.update({
         where: { id: event.id },
         data: {
           status: "FAILED",
-          errorMessage: error.message,
+          errorMessage: error instanceof Error ? error.message : String(error),
           retryCount: { increment: 1 },
         },
       });
