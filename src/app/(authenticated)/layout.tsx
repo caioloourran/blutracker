@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { Sidebar } from "@/components/sidebar";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function AuthenticatedLayout({
   children,
 }: {
