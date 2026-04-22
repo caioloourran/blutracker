@@ -5,6 +5,9 @@ import { decrypt } from "@/lib/encryption";
 import { buildUserData } from "@/lib/hash";
 import { buildCapiPayload, sendEvent } from "@/lib/meta-capi";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 interface WebhookCustomer {
   phone: string;
   email?: string;

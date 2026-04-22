@@ -5,6 +5,9 @@ import { decrypt } from "@/lib/encryption";
 import { buildUserData } from "@/lib/hash";
 import { buildCapiPayload, sendEvent } from "@/lib/meta-capi";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 // NOTE: next/server's after() may not be available in Next.js 14.
 // If it's not available, use a fire-and-forget pattern instead.
 let afterFn: ((fn: () => void) => void) | undefined;
